@@ -53,8 +53,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     block_row_coordinate = move.i // game_state.board.m * game_state.board.m
                     block_column_coordinate = move.j // game_state.board.n * game_state.board.n
 
-                    print("row: ", block_row_coordinate, "column: ", block_column_coordinate)
-
                     # Loop through rows and columns in block that contains current move
                     for row in range(block_row_coordinate, block_row_coordinate + game_state.board.m): # Loop from current coordinate to size of block in row direction (m)
                         for column in range(block_column_coordinate, block_column_coordinate + game_state.board.n): # Loop from current coordinate to size of block in column direction (n)
