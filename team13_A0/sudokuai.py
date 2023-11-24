@@ -29,32 +29,24 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         for value in range(1, N+1) if possible(i, j, value)]
 
             all_legal_moves = []
-
+            
             for move in all_moves:
                 legal = True
 
                 # Check if value is repeated in column
-                for column in range(N):
-                    if game_state.board.get(column, move.j) == move.value:
+                for column_row in range(N):
+                    if game_state.board.get(column_row, move.j) == move.value:
                         legal = False
                         break
 
-                if legal:
-                    # Check if value is repeated in row
-                    for row in range(N):
-                        if game_state.board.get(move.i, row) == move.value:
-                            legal = False
-                            break
-                else:
-                    continue
+                    if game_state.board.get(move.i, column_row) == move.value:
+                        legal = False
+                        break
 
                 if legal:
                     # Find the coordinates of the upper left corner of the block in which the current possible move is positioned
                     block_row_coordinate = move.i // game_state.board.m * game_state.board.m
                     block_column_coordinate = move.j // game_state.board.n * game_state.board.n
-
-                    print("row: ", block_row_coordinate, "column: ", block_column_coordinate)
-
                     # Loop through rows and columns in block that contains current move
                     for row in range(block_row_coordinate, block_row_coordinate + game_state.board.m): # Loop from current coordinate to size of block in row direction (m)
                         for column in range(block_column_coordinate, block_column_coordinate + game_state.board.n): # Loop from current coordinate to size of block in column direction (n)
@@ -74,6 +66,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
         
         all_legal_moves = legal_moves()
+        
         move = random.choice(all_legal_moves)
         self.propose_move(move)
         while True:
