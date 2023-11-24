@@ -16,15 +16,18 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def __init__(self):
         super().__init__()
 
-    # N.B. This is a very naive implementation.
+    
     def compute_best_move(self, game_state: GameState) -> None:
         N = game_state.board.N
 
-        def possible(i, j, value):
-            return game_state.board.get(i, j) == SudokuBoard.empty \
-                   and not TabooMove(i, j, value) in game_state.taboo_moves
-        
-        def legal_moves():      
+        def evaluate_move():
+            pass
+
+        def get_legal_moves(game_state):
+            def possible(i, j, value):
+                return game_state.board.get(i, j) == SudokuBoard.empty \
+                    and not TabooMove(i, j, value) in game_state.taboo_moves
+            
             all_moves = [Move(i, j, value) for i in range(N) for j in range(N)
                         for value in range(1, N+1) if possible(i, j, value)]
 
@@ -64,8 +67,28 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
 
             return all_legal_moves
 
+        def minimax(game_state, depth ,isMaximizing=False):
+            cloned_game_state = game_state
+            moves = get_legal_moves(cloned_game_state)
+
+            if depth == 0 or moves == []:
+                return  evaluate_move(game_state)
+            
+            if isMaximizing:
+                max_eval = float('-inf')
+                eval = minimax(cloned_game_state, depth - 1, False)
+                max_eval = max(max_eval, eval)
+
+
+            else:
+                min_eval = float('inf')
+                eval = minimax(cloned_game_state, depth - 1, True)
+                min_eval = min(min_eval, eval)  
         
-        all_legal_moves = legal_moves()
+
+        
+        move = minimax(game_state, depth=3, isMaximizing=True)
+
         
         move = random.choice(all_legal_moves)
         self.propose_move(move)
