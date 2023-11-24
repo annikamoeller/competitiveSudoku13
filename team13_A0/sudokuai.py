@@ -20,8 +20,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def compute_best_move(self, game_state: GameState) -> None:
         N = game_state.board.N
 
-        def evaluate_move():
-            pass
+        def evaluate_move(game_state, move):
+            pass 
 
         def get_legal_moves(game_state):
             def possible(i, j, value):
@@ -78,21 +78,20 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 max_eval = float('-inf')
                 eval = minimax(cloned_game_state, depth - 1, False)
                 max_eval = max(max_eval, eval)
-
+                return max_eval
 
             else:
                 min_eval = float('inf')
                 eval = minimax(cloned_game_state, depth - 1, True)
                 min_eval = min(min_eval, eval)  
+                return min_eval
         
 
         
         move = minimax(game_state, depth=3, isMaximizing=True)
 
-        
-        move = random.choice(all_legal_moves)
         self.propose_move(move)
         while True:
             time.sleep(0.2)
-            self.propose_move(random.choice(all_legal_moves))
+            self.propose_move(move)
 
