@@ -7,7 +7,6 @@ import time
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 
-
 class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     """
     Sudoku AI that computes a move for a given sudoku configuration.
@@ -16,82 +15,102 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def __init__(self):
         super().__init__()
 
-    
     def compute_best_move(self, game_state: GameState) -> None:
-        N = game_state.board.N
+        game_board = game_state.board
+        N = game_board.N
 
-        def evaluate_move(game_state, move):
-            pass 
-
-        def get_legal_moves(game_state):
-            def possible(i, j, value):
-                return game_state.board.get(i, j) == SudokuBoard.empty \
-                    and not TabooMove(i, j, value) in game_state.taboo_moves
-            
+        # Check if a move is possible
+        def possible(board, i, j, value):
+            return board.get(i, j) == SudokuBoard.empty and not TabooMove(i, j, value) in game_state.taboo_moves
+        
+        # Get all legal moves in a state
+        def get_legal_moves(board):
             all_moves = [Move(i, j, value) for i in range(N) for j in range(N)
-                        for value in range(1, N+1) if possible(i, j, value)]
+                        for value in range(1, N+1) if possible(board, i, j, value)]
 
             all_legal_moves = []
             
             for move in all_moves:
-                legal = True
+                current_row, current_col, current_block = get_row_col_block_values(board, move)
 
-                # Check if value is repeated in column
-                for column_row in range(N):
-                    if game_state.board.get(column_row, move.j) == move.value:
-                        legal = False
-                        break
-
-                    if game_state.board.get(move.i, column_row) == move.value:
-                        legal = False
-                        break
-
-                if legal:
-                    # Find the coordinates of the upper left corner of the block in which the current possible move is positioned
-                    block_row_coordinate = move.i // game_state.board.m * game_state.board.m
-                    block_column_coordinate = move.j // game_state.board.n * game_state.board.n
-                    # Loop through rows and columns in block that contains current move
-                    for row in range(block_row_coordinate, block_row_coordinate + game_state.board.m): # Loop from current coordinate to size of block in row direction (m)
-                        for column in range(block_column_coordinate, block_column_coordinate + game_state.board.n): # Loop from current coordinate to size of block in column direction (n)
-                            if game_state.board.get(row, column) == move.value:
-                                legal = False
-                                break
-                else:
-                    continue
-
-                # If all checks are passed add the move to the list of legal moves
-                if legal:
-                    all_legal_moves.append(move)
-                else:
-                    continue
+                if (move.value in current_row) or (move.value in current_col) or (move.value in current_block): continue
+                else: all_legal_moves.append(move)
 
             return all_legal_moves
 
-        def minimax(game_state, depth ,isMaximizing=False):
-            cloned_game_state = game_state
-            moves = get_legal_moves(cloned_game_state)
+        # Helper function to return all values in the row, column, and block of the currently chosen move
+        def get_row_col_block_values(board, move):
+            current_row = [board.get(move.i, j) for j in range(0, N) if board.get(move.i, j) != SudokuBoard.empty] 
+            current_col = [board.get(i, move.j) for i in range(0, N) if board.get(i, move.j) != SudokuBoard.empty]
+            block_i = move.i // board.m * board.m # row coordinate
+            block_j = move.j // board.n * board.n # column coordinate
+            current_block = [board.get(i,j) for i in range(block_i, block_i + board.m) for j in range(block_j, block_j + board.n) if board.get(i,j) != SudokuBoard.empty]
+            return current_row, current_col, current_block
 
-            if depth == 0 or moves == []:
-                return  evaluate_move(game_state)
+        # Assign a score to a move
+        def evaluate_move(board, move, isMaximizing):
+            board.put(move.i, move.j, move.value) # make move 
+            current_row, current_col, current_block = get_row_col_block_values(board, move)
+
+            # Check if a move results in a full row/column/block and assign score accordingly
+            solves_row = (len(current_row) == N)    
+            solves_col = (len(current_col) == N)     
+            solves_block = (len(current_block) == N) 
+            truth_arr = [solves_row, solves_col, solves_block] 
+            if sum(truth_arr) == 0: score = 0
+            if sum(truth_arr) == 1: score = 1
+            if sum(truth_arr) == 2: score = 3
+            if sum(truth_arr) == 3: score = 7
+
+            # Penalize a move that will allow the following player to complete a row/column/block
+            penultimate_move = ((len(current_row)+2 == N) or (len(current_col)+2 == N) or (len(current_block)+2 == N))
+            if penultimate_move: score = -2
+
+            # Negate score for minimizing player
+            if isMaximizing: return score
+            else: return score * -1 
+
+                    
+        # MiniMax algorithm with pruning
+        def minimax(board, depth, alpha, beta, isMaximizing=False):
+            all_moves = get_legal_moves(board)
+
+            if depth == 0: return 0
+            if not all_moves: return 0
             
             if isMaximizing:
-                max_eval = float('-inf')
-                eval = minimax(cloned_game_state, depth - 1, False)
-                max_eval = max(max_eval, eval)
+                max_eval = -float('inf')
+                for move in all_moves:
+                    score = evaluate_move(board, move, True)
+                    eval = score + minimax(board, depth - 1, alpha, beta, False)
+                    max_eval = max(max_eval, eval)
+                    alpha = max(alpha, eval)
+                    board.put(move.i, move.j, 0)
+                    if beta <= alpha: break
                 return max_eval
 
             else:
                 min_eval = float('inf')
-                eval = minimax(cloned_game_state, depth - 1, True)
-                min_eval = min(min_eval, eval)  
+                for move in all_moves:
+                    score = evaluate_move(board, move, False)
+                    eval = score + minimax(board, depth - 1, alpha, beta, True)
+                    min_eval = min(min_eval, eval)
+                    beta = min(beta, eval)
+                    board.put(move.i, move.j, 0)
+                    if beta <= alpha: break
                 return min_eval
         
-
-        
-        move = minimax(game_state, depth=3, isMaximizing=True)
-
-        self.propose_move(move)
-        while True:
-            time.sleep(0.2)
-            self.propose_move(move)
-
+        # Run MiniMax and propose best move
+        all_legal_moves = get_legal_moves(game_board)
+        for depth in range(1,20):
+            max_eval = alpha = beta = -float('inf')
+            self.propose_move(random.choice(all_legal_moves))
+            for move in all_legal_moves:
+                score = evaluate_move(game_board, move, True)
+                eval = score + minimax(game_board, depth, alpha, beta, isMaximizing=False)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+                    self.propose_move(best_move)
+                game_board.put(move.i, move.j, 0)
+            self.propose_move(best_move)
