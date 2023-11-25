@@ -32,7 +32,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 current_row, current_col, current_block = get_row_col_block_values(board, move)
                 if (move.value in current_row) or (move.value in current_col) or (move.value in current_block): continue
                 else: all_legal_moves.append(move)
-                
+
             return all_legal_moves
 
         # Helper function to return all values in the row, column, and block of the currently chosen move
@@ -72,9 +72,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         def minimax(board, depth, alpha, beta, isMaximizing=False):
             all_moves = get_legal_moves(board)
 
-            if depth == 0: return 0
-            if not all_moves: return 0
-            
+            if depth == 0 or not all_moves: return 0
+                        
             if isMaximizing:
                 max_eval = -float('inf')
                 for move in all_moves:
