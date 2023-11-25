@@ -3,7 +3,6 @@
 #  https://www.gnu.org/licenses/gpl-3.0.txt)
 
 import random
-import time
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 
@@ -29,13 +28,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                         for value in range(1, N+1) if possible(board, i, j, value)]
 
             all_legal_moves = []
-            
             for move in all_moves:
                 current_row, current_col, current_block = get_row_col_block_values(board, move)
-
                 if (move.value in current_row) or (move.value in current_col) or (move.value in current_block): continue
                 else: all_legal_moves.append(move)
-
+                
             return all_legal_moves
 
         # Helper function to return all values in the row, column, and block of the currently chosen move
