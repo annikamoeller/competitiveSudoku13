@@ -98,7 +98,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         
         # Run MiniMax and propose best move
         all_legal_moves = get_legal_moves(game_board)
-        for depth in range(1,20):
+        for depth in range(1,N*N):
             max_eval = alpha = beta = -float('inf')
             self.propose_move(random.choice(all_legal_moves))
             for move in all_legal_moves:
