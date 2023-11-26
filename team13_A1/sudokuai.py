@@ -41,7 +41,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             current_col = [board.get(i, move.j) for i in range(0, N) if board.get(i, move.j) != SudokuBoard.empty]
             block_i = move.i // board.m * board.m # row coordinate
             block_j = move.j // board.n * board.n # column coordinate
-            current_block = [board.get(i,j) for i in range(block_i, block_i + board.m) for j in range(block_j, block_j + board.n) if board.get(i,j) != SudokuBoard.empty]
+            current_block = [board.get(i,j) for i in range(block_i, block_i + board.m) \
+                             for j in range(block_j, block_j + board.n) if board.get(i,j) != SudokuBoard.empty]
             return current_row, current_col, current_block
 
         # Assign a score to a move
