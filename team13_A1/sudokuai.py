@@ -30,7 +30,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             all_legal_moves = []
             for move in all_moves:
                 current_row, current_col, current_block = get_row_col_block_values(board, move)
-                if (move.value in current_row) or (move.value in current_col) or (move.value in current_block): continue
+                if (move.value in set(current_row)) or (move.value in set(current_col)) or (move.value in set(current_block)): continue
                 else: all_legal_moves.append(move)
 
             return all_legal_moves
@@ -109,4 +109,3 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     best_move = move
                     self.propose_move(best_move)
                 game_board.put(move.i, move.j, 0)
-            self.propose_move(best_move)
