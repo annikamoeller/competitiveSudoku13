@@ -81,7 +81,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     score = evaluate_move(board, move, True)
                     eval = score + minimax(board, depth - 1, alpha, beta, False)
                     max_eval = max(max_eval, eval)
-                    alpha = max(alpha, eval)
+                    alpha = max(alpha, max_eval)
                     board.put(move.i, move.j, 0)
                     if beta <= alpha: break
                 return max_eval
@@ -92,11 +92,14 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     score = evaluate_move(board, move, False)
                     eval = score + minimax(board, depth - 1, alpha, beta, True)
                     min_eval = min(min_eval, eval)
-                    beta = min(beta, eval)
+                    beta = min(beta, min_eval)
                     board.put(move.i, move.j, 0)
                     if beta <= alpha: break
                 return min_eval
         
+        current_player = game_state.current_player()
+        if current_player == 1: isMaximizing=False
+        elif current_player == 2: isMaximizing=True
         # Run MiniMax and propose best move
         all_legal_moves = get_legal_moves(game_board)
         max_eval = -float('inf')
@@ -106,7 +109,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             alpha = beta = -float('inf')
             for move in all_legal_moves:
                 score = evaluate_move(game_board, move, True)
-                eval = score + minimax(game_board, depth, alpha, beta, isMaximizing=False)
+                eval = score + minimax(game_board, depth, alpha, beta, isMaximizing)
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
