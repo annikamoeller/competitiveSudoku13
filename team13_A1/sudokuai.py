@@ -61,8 +61,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             if sum(truth_arr) == 3: score = 7
 
             # Penalize a move that will allow the following player to complete a row/column/block
-            penultimate_move = ((len(current_row)+2 == N) or (len(current_col)+2 == N) or (len(current_block)+2 == N))
-            if penultimate_move: score = -2
+            # penultimate_move = ((len(current_row)+1 == N) or (len(current_col)+1 == N) or (len(current_block)+1 == N))
+            # if penultimate_move: score = -2
 
             # Negate score for minimizing player
             if isMaximizing: return score
@@ -99,9 +99,11 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         
         # Run MiniMax and propose best move
         all_legal_moves = get_legal_moves(game_board)
-        for depth in range(1,N*N):
-            max_eval = alpha = beta = -float('inf')
-            self.propose_move(random.choice(all_legal_moves))
+        max_eval = -float('inf')
+        self.propose_move(random.choice(all_legal_moves))
+        for depth in range(1,5):
+            print("depth: ", depth)
+            alpha = beta = -float('inf')
             for move in all_legal_moves:
                 score = evaluate_move(game_board, move, True)
                 eval = score + minimax(game_board, depth, alpha, beta, isMaximizing=False)
@@ -109,4 +111,5 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     max_eval = eval
                     best_move = move
                     self.propose_move(best_move)
+                    print("proposed move ", best_move.i, best_move.j, best_move.value, eval)
                 game_board.put(move.i, move.j, 0)
