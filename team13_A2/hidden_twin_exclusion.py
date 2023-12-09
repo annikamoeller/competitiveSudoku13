@@ -1,5 +1,5 @@
 from competitive_sudoku.sudoku import SudokuBoard
-
+from team13_A2.utils import * 
 
 def calculate_region_index(board: SudokuBoard, m, n):
     row_region_index = (m // board.m) * board.m
@@ -50,7 +50,19 @@ def hidden_twin_exclusion(board: SudokuBoard, moves: list):
                 # We have found a move that will get rejected by the Oracle and will be placed on the taboo list
                 # This is very valuable, so we store it (But we don't need more than 1)
                 new_taboo_result = move
+                print("TABOO MOVE ", new_taboo_result.i, new_taboo_result.j, new_taboo_result.value)
         else:
             filtered_moves.append(move)
 
     return filtered_moves, new_taboo_result
+
+def remove_opponent_scoring_moves(board: SudokuBoard, moves: list):
+    filtered_moves = []
+
+    for move in moves:
+        current_row, current_col, current_block = get_row_col_block_values(board, move)
+        # Check if a move results in a full row/column/block and assign score accordingly
+        if (len(current_row) == board.N-2 or len(current_col) == board.N-2 or len(current_block) == board.N-2): continue
+        else: filtered_moves.append(move)
+
+    return filtered_moves
