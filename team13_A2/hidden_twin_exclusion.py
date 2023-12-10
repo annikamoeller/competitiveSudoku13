@@ -9,8 +9,8 @@ def calculate_region_index(board: SudokuBoard, m, n):
 
     return row_region_index, column_region_index
 
-def remove_unwanted_moves_list(board, moves, intersection, k, k_):
-    moves_to_remove = []
+def calculate_taboo_moves(board, moves, intersection, k, k_):
+    taboo_moves = []
     same_row = same_col = False
     value1 = list(intersection)[0]
     value2 = list(intersection)[1]
@@ -22,15 +22,15 @@ def remove_unwanted_moves_list(board, moves, intersection, k, k_):
     for move in moves: 
         if (move.i == k[0] and move.j == k[1]) or (move.i == k_[0] and move.j == k_[1]):
             if move.value != value1 and move.value != value2:
-                moves_to_remove.append(move)
+                taboo_moves.append(move)
         else:
             if move.i == k[index_to_check]: # check row or column 
                 if move.value == value1 or move.value == value2:
-                    moves_to_remove.append(move)
+                    taboo_moves.append(move)
             if calculate_region_index(board, move.i, move.j) == calculate_region_index(board, k[0], k[1]): # check block 
                 if move.value == value1 or move.value == value2: 
-                    moves_to_remove.append(move)
-    return moves_to_remove
+                    taboo_moves.append(move)
+    return taboo_moves
 
 def pair_appears_in_row_or_block(board, moves_dict, intersection, k, k_):
     same_row = same_col = False
@@ -58,8 +58,8 @@ def hidden_twin_exclusion(board: SudokuBoard, moves: list):
     @param moves: A list of moves to evaluate.
     """
     filtered_moves = []
-    moves_to_remove = []
-    taboo_move = None
+    taboo_moves = []
+    store_taboo_move = None
     moves_dict = {}
 
     # Store the moves in a dictionary where the key is the position of the move
@@ -71,29 +71,53 @@ def hidden_twin_exclusion(board: SudokuBoard, moves: list):
         else:
             moves_dict[position] = [m.value]
 
-    # Check if the potential twins are valid by comparing for each position the possible values
     for k, v in moves_dict.items():
         for k_, v_ in moves_dict.items():
-            # Check if the two positions are not the same and that they are in the same region
             if (k != k_) and (calculate_region_index(board, k[0], k[1]) == calculate_region_index(board, k_[0], k_[1]) and (k[0] == k_[0] or k[1] == k_[1])):
                 intersection = set(v) & set(v_)
                 if len(intersection) == 2 and not pair_appears_in_row_or_block(board, moves_dict, intersection, k, k_):
-                    moves_to_remove.append(remove_unwanted_moves_list(board, moves, intersection, k, k_))
+                    taboo_moves.append(calculate_taboo_moves(board, moves, intersection, k, k_))
     
-    moves_to_remove = list(chain.from_iterable(moves_to_remove))
-    if moves_to_remove:
-        filtered_moves = [move for move in moves if move not in moves_to_remove]
-        taboo_move = random.choice(moves_to_remove)
-        return filtered_moves, taboo_move
+    taboo_moves = list(chain.from_iterable(taboo_moves))
+    if taboo_moves:
+        filtered_moves = [move for move in moves if move not in taboo_moves]
+        store_taboo_move = taboo_moves[0]
+        return filtered_moves, store_taboo_move
 
-    return moves, taboo_move
+    return moves, store_taboo_move
+
+def obvious_singles(board, moves):
+    taboo_moves = []
+    store_taboo_move = None
+    moves_dict = {}
+
+    for m in moves:
+        position = (m.i, m.j)
+        if position in moves_dict:
+            moves_dict[position].append(m.value)
+        else:
+            moves_dict[position] = [m.value]
+
+    for k, v in moves_dict.items():
+        if len(v) == 1:
+            for move in moves: 
+                if move.i == k[0] or move.j == k[1] or \
+                calculate_region_index(board, k[0], k[1]) == calculate_region_index(board, move.i, move.j):
+                    if (move.i != k[0] or move.j != k[1]) and move.value == v[0]:
+                        #print("taboo move ", move.i, move.j, move.value)
+                        taboo_moves.append(move)
+    if taboo_moves:
+        filtered_moves = [move for move in moves if move not in taboo_moves]
+        store_taboo_move = taboo_moves[0]
+        return filtered_moves, store_taboo_move
+    
+    return moves, store_taboo_move
 
 def remove_opponent_scoring_moves(board: SudokuBoard, moves: list):
     filtered_moves = []
 
     for move in moves:
         current_row, current_col, current_block = get_row_col_block_values(board, move)
-        # Check if a move results in a full row/column/block and assign score accordingly
         if (len(current_row) == board.N-2 or len(current_col) == board.N-2 or len(current_block) == board.N-2): continue
         else: filtered_moves.append(move)
 

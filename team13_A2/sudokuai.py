@@ -37,30 +37,22 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         # MiniMax algorithm with pruning
         def minimax(game_state, depth, iter_depth, current_score, alpha, beta, first_run, isMaximizing=False):
             all_moves = get_legal_moves(game_state)
-            twin_excluded_moves, taboo_move = hidden_twin_exclusion(game_state.board, all_moves) 
-            #print(twin_excluded_moves)
-            filtered_moves = remove_opponent_scoring_moves(game_state.board, twin_excluded_moves)
-            n_empties = calculate_n_empties(game_state.board)
-            if not first_run:
-                n_empties += 1
-            # print("n_empties ", n_empties)
-            # if should_play_taboo(game_state.board, filtered_moves, n_empties):
-            #     #print("should play taboo")
-            #     if taboo_move:
-            #         print(taboo_move.i, taboo_move.j, taboo_move.value)
-            #         print("proposed taboo move") 
-            #         self.propose_move(taboo_move)
-            #         if isMaximizing:
-            #             return taboo_move, float('inf')
-            #         elif not isMaximizing:
-            #             return taboo_move, -float('inf')
-            elif not filtered_moves:
-                filtered_moves = twin_excluded_moves
+            obvious_singles_excluded, single_taboo_move = obvious_singles(game_state.board, all_moves)
+            filtered_moves, twin_taboo_move = hidden_twin_exclusion(game_state.board, obvious_singles_excluded) 
+            taboo_move = None
+            #filtered_moves = remove_opponent_scoring_moves(game_state.board, twin_excluded_moves)
 
-            #print("TABOO MOVE ", taboo_move.i, taboo_move.j, taboo_move.value)
+            if single_taboo_move is not None:
+                taboo_move = single_taboo_move
+            elif twin_taboo_move is not None:
+                taboo_move = twin_taboo_move
+            
+            elif not filtered_moves:
+                filtered_moves = all_moves
+
             random.shuffle(filtered_moves)
   
-            if depth == 0 or not filtered_moves: return None, current_score
+            if depth == 0 or not all_moves: return None, current_score
                         
             if isMaximizing:
                 max_eval = -float('inf')
@@ -74,10 +66,9 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     if float(eval) > max_eval:
                         max_eval = eval
                         best_move = move
-                        #print("best move ", best_move.i, best_move.j, best_move.value)
                     alpha = max(alpha, max_eval)
                     if beta <= alpha: break
-                return best_move, max_eval
+                return best_move, max_eval, taboo_move
 
             else:
                 min_eval = float('inf')
@@ -91,22 +82,24 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     if float(eval) < min_eval:
                         min_eval = eval
                         best_move = move
-                        #print("best move ", best_move.i, best_move.j, best_move.value)
                     beta = min(beta, min_eval)
                     if beta <= alpha: break
-                return best_move, min_eval
+                return best_move, min_eval, taboo_move
         
-        current_player = game_state.current_player()
-
         # Run MiniMax and propose best move
         all_legal_moves = get_legal_moves(game_state)
-        #filtered_moves, taboo_move = hidden_twin_exclusion(game_state.board, all_legal_moves)
-        #filtered_moves = remove_opponent_scoring_moves(game_state.board, filtered_moves)
         random_move = random.choice(all_legal_moves)
-        print(random_move.i, random_move.j, random_move.value)
         self.propose_move(random_move)
     
         for depth in range(1,N*N):
+            print(depth)
             iter_depth = depth
-            best_move, _ = minimax(game_state, depth, iter_depth, 0, float('-inf'), float('inf'), first_run = True, isMaximizing = True)
-            self.propose_move(best_move)
+            best_move, eval, taboo_move = minimax(game_state, depth, iter_depth, 0, float('-inf'), float('inf'), first_run = True, isMaximizing = True)
+            print("eval ", eval)
+            even = even_squares_left(game_state.board)
+            if (eval < 0 or even) and board_half_filled(game_state.board):
+                if taboo_move:
+                        self.propose_move(taboo_move)
+                        print("proposed taboo move")
+            else:
+                self.propose_move(best_move)
