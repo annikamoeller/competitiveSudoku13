@@ -35,20 +35,25 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             return score
 
         # MiniMax algorithm with pruning
-        def minimax(game_state, depth, current_score, alpha, beta, isMaximizing=False):
+        def minimax(game_state, depth, iter_depth, current_score, alpha, beta, first_run, isMaximizing=False):
             all_moves = get_legal_moves(game_state)
             twin_excluded_moves, taboo_move = hidden_twin_exclusion(game_state.board, all_moves) 
+            #print(twin_excluded_moves)
             filtered_moves = remove_opponent_scoring_moves(game_state.board, twin_excluded_moves)
-            if should_play_taboo(game_state.board, filtered_moves):
-                #print("should play taboo")
-                if taboo_move:
-                    print(taboo_move.i, taboo_move.j, taboo_move.value)
-                    print("proposed taboo move") 
-                    self.propose_move(taboo_move)
-                    if isMaximizing:
-                        return taboo_move, float('inf')
-                    elif not isMaximizing:
-                        return taboo_move, -float('inf')
+            n_empties = calculate_n_empties(game_state.board)
+            if not first_run:
+                n_empties += 1
+            # print("n_empties ", n_empties)
+            # if should_play_taboo(game_state.board, filtered_moves, n_empties):
+            #     #print("should play taboo")
+            #     if taboo_move:
+            #         print(taboo_move.i, taboo_move.j, taboo_move.value)
+            #         print("proposed taboo move") 
+            #         self.propose_move(taboo_move)
+            #         if isMaximizing:
+            #             return taboo_move, float('inf')
+            #         elif not isMaximizing:
+            #             return taboo_move, -float('inf')
             elif not filtered_moves:
                 filtered_moves = twin_excluded_moves
 
@@ -63,13 +68,13 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     score = evaluate_move(game_state.board, move)
                     current_score += score
                     game_state.board.put(move.i, move.j, move.value)
-                    eval = minimax(game_state, depth - 1, current_score, alpha, beta, False)[1]
+                    eval = minimax(game_state, depth - 1, iter_depth, current_score, alpha, beta, first_run = False, isMaximizing=False)[1]
                     current_score -= score
                     game_state.board.put(move.i, move.j, SudokuBoard.empty)
                     if float(eval) > max_eval:
                         max_eval = eval
                         best_move = move
-                        print("best move ", best_move.i, best_move.j, best_move.value)
+                        #print("best move ", best_move.i, best_move.j, best_move.value)
                     alpha = max(alpha, max_eval)
                     if beta <= alpha: break
                 return best_move, max_eval
@@ -80,22 +85,19 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                     score = evaluate_move(game_state.board, move)
                     current_score -= score
                     game_state.board.put(move.i, move.j, move.value)
-                    eval = minimax(game_state, depth - 1, current_score, alpha, beta, True)[1]
+                    eval = minimax(game_state, depth - 1, iter_depth, current_score, alpha, beta, first_run = False, isMaximizing=True)[1]
                     current_score += score
                     game_state.board.put(move.i, move.j, SudokuBoard.empty)
                     if float(eval) < min_eval:
                         min_eval = eval
                         best_move = move
-                        print("best move ", best_move.i, best_move.j, best_move.value)
+                        #print("best move ", best_move.i, best_move.j, best_move.value)
                     beta = min(beta, min_eval)
                     if beta <= alpha: break
                 return best_move, min_eval
         
         current_player = game_state.current_player()
 
-        if current_player == 1: isMaximizing=False
-        elif current_player == 2: isMaximizing=True
-        
         # Run MiniMax and propose best move
         all_legal_moves = get_legal_moves(game_state)
         #filtered_moves, taboo_move = hidden_twin_exclusion(game_state.board, all_legal_moves)
@@ -105,5 +107,6 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         self.propose_move(random_move)
     
         for depth in range(1,N*N):
-            best_move, _ = minimax(game_state, depth, 0, float('-inf'), float('inf'), isMaximizing)
+            iter_depth = depth
+            best_move, _ = minimax(game_state, depth, iter_depth, 0, float('-inf'), float('inf'), first_run = True, isMaximizing = True)
             self.propose_move(best_move)
