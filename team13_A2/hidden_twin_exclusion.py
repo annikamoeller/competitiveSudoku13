@@ -32,32 +32,6 @@ def remove_unwanted_moves_list(board, moves, intersection, k, k_):
                     moves_to_remove.append(move)
     return moves_to_remove
 
-# def remove_unwanted_moves(board, moves_dict, intersection, k, k_):
-#     moves_to_remove = []
-#     same_row = same_col = False
-#     value1 = intersection[0]
-#     value2 = intersection[1]
-#     if k[0] == k_[0]: same_row = True
-#     if k[1] == k_[1]: same_col = True 
-#     if same_row: index_to_check = 0
-#     if same_col: index_to_check = 1
-
-#     for key, values in moves_dict: 
-#         if key == (k[0], k[1]) and key == (k_[0], k_[1]):  
-#             for v in values: 
-#                 if v!= value1 or v!=value2:
-#                     moves_dict[key].remove(v)
-#         else:
-#             if key[index_to_check] == k[index_to_check]: # check row or column
-#                 for v in values: 
-#                     if v == value1 or v == value2:
-#                         moves_dict[key].remove(v)
-#             if calculate_region_index(board, key[0], key[1]) == calculate_region_index(board, k[0], k[1]): # check block 
-#                 for v in values: 
-#                     if v == value1 or v == value2:
-#                         moves_dict[key].remove(v)
-#     return moves_dict
-
 def pair_appears_in_row_or_block(board, moves_dict, intersection, k, k_):
     same_row = same_col = False
     value1 = list(intersection)[0]
