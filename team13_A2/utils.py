@@ -28,3 +28,33 @@ def get_row_col_block_values(board, move):
     current_block = [board.get(i,j) for i in range(block_i, block_i + board.m) \
                         for j in range(block_j, block_j + board.n) if board.get(i,j) != SudokuBoard.empty]
     return current_row, current_col, current_block
+
+def should_play_taboo(board, moves):
+    can_score = False
+    for move in moves:
+        current_row, current_col, current_block = get_row_col_block_values(board, move)
+
+        if (len(current_row) == board.N-1 or len(current_col) == board.N-1 or len(current_block) == board.N-1):
+            can_score = True
+
+        if even_squares_left(board) and board_half_filled(board):
+            return True
+        else: return False 
+
+def even_squares_left(board):
+    n_empties = 0
+    for i in range(board.N):
+        for j in range(board.N):
+            if board.get(i, j) is SudokuBoard.empty:
+                n_empties += 1    
+    return n_empties % 2 == 0
+
+def board_half_filled(board):
+    n_full = 0
+    total_cells = board.N * board.N
+    for i in range(board.N):
+        for j in range(board.N):
+            if board.get(i, j) is not SudokuBoard.empty:
+                n_full += 1
+    return n_full/total_cells > 0.5
+    

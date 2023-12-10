@@ -32,28 +32,36 @@ def hidden_twin_exclusion(board: SudokuBoard, moves: list):
     for k, v in potential_twins.items():
         for k_, v_ in potential_twins.items():
             # Check if the two positions are not the same and that they are in the same region
-            if k != k_ and calculate_region_index(board, k[0], k[1]) == calculate_region_index(board, k_[0], k_[1]):
+            if (k != k_) and (calculate_region_index(board, k[0], k[1]) == calculate_region_index(board, k_[0], k_[1]) and (k[0] == k_[0] or k[1] == k_[1])):
                 intersection = set(v) & set(v_)
                 if len(intersection) == 2:
-                    twins[k] = list(intersection)
-                    twins[k_] = list(intersection)
+                    if k in twins or k_ in twins:
+                        continue
+                    twins[k] = list(list(intersection))
+                    #print("k ", k)
+                    twins[k_] = list(list(intersection))
+                    #print("k_ ", k_, "\n")
             else:
                 continue
-
+    #print(twins)
     # Filter out moves using the twins
     for move in moves:
         key = (move.i, move.j)
         if key in twins:
             if move.value in twins[key]:
                 filtered_moves.append(move)
-            elif new_taboo_result is not None:
+                pairs = twins[key] # e.g 3,6
+                homies = [k for k, v in twins.items() if v == pairs]
+                #print("pairs ", pairs)
+                #print("homies ", homies)
+            else:
                 # We have found a move that will get rejected by the Oracle and will be placed on the taboo list
                 # This is very valuable, so we store it (But we don't need more than 1)
                 new_taboo_result = move
-                print("TABOO MOVE ", new_taboo_result.i, new_taboo_result.j, new_taboo_result.value)
         else:
             filtered_moves.append(move)
-
+    # if new_taboo_result:
+    #     print("TABOO MOVE ", new_taboo_result.i, new_taboo_result.j, new_taboo_result.value)
     return filtered_moves, new_taboo_result
 
 def remove_opponent_scoring_moves(board: SudokuBoard, moves: list):
