@@ -116,16 +116,3 @@ def obvious_singles(board, moves):
         return filtered_moves, store_taboo_move
     
     return moves, store_taboo_move
-
-def remove_opponent_scoring_moves(board: SudokuBoard, moves: list):
-    """
-    Remove moves that would allow the opponent to score points.
-    """
-    filtered_moves = []
-
-    for move in moves:
-        current_row, current_col, current_block = get_row_col_block_values(board, move)
-        if (len(current_row) == board.N-2 or len(current_col) == board.N-2 or len(current_block) == board.N-2): continue
-        else: filtered_moves.append(move)
-
-    return filtered_moves
