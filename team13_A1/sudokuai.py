@@ -15,9 +15,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         super().__init__()
 
     def compute_best_move(self, game_state: GameState) -> None:
-        game_board = game_state.board
-        N = game_board.N
-
+        N = game_state.board.N
+        board = game_state.board
         # Check if a move is possible
         def possible(board, i, j, value):
             return board.get(i, j) == SudokuBoard.empty and not TabooMove(i, j, value) in game_state.taboo_moves
@@ -46,73 +45,66 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             return current_row, current_col, current_block
 
         # Assign a score to a move
-        def evaluate_move(board, move, isMaximizing):
-            board.put(move.i, move.j, move.value) # make move 
+        def evaluate_move(board, move): 
             current_row, current_col, current_block = get_row_col_block_values(board, move)
 
             # Check if a move results in a full row/column/block and assign score accordingly
-            solves_row = (len(current_row) == N)    
-            solves_col = (len(current_col) == N)     
-            solves_block = (len(current_block) == N) 
+            solves_row = (len(current_row) == N-1)    
+            solves_col = (len(current_col) == N-1)     
+            solves_block = (len(current_block) == N-1) 
             truth_arr = [solves_row, solves_col, solves_block] 
             if sum(truth_arr) == 0: score = 0
             if sum(truth_arr) == 1: score = 1
             if sum(truth_arr) == 2: score = 3
             if sum(truth_arr) == 3: score = 7
+            return score
 
-            # Penalize a move that will allow the following player to complete a row/column/block
-            # penultimate_move = ((len(current_row)+1 == N) or (len(current_col)+1 == N) or (len(current_block)+1 == N))
-            # if penultimate_move: score = -2
-
-            # Negate score for minimizing player
-            if isMaximizing: return score
-            else: return score * -1 
-
-                    
         # MiniMax algorithm with pruning
-        def minimax(board, depth, alpha, beta, isMaximizing=False):
-            all_moves = get_legal_moves(board)
-
-            if depth == 0 or not all_moves: return 0
+        def minimax(board, depth, current_score, alpha, beta, isMaximizing=False):
+            all_moves = get_legal_moves(board)          
+            if depth == 0 or not all_moves: return None, current_score
                         
             if isMaximizing:
                 max_eval = -float('inf')
                 for move in all_moves:
-                    score = evaluate_move(board, move, True)
-                    eval = score + minimax(board, depth - 1, alpha, beta, False)
-                    max_eval = max(max_eval, eval)
+                    score = evaluate_move(board, move)
+                    current_score += score
+                    board.put(move.i, move.j, move.value)
+                    eval = minimax(board, depth - 1, current_score, alpha, beta, False)[1]
+                    current_score -= score
+                    board.put(move.i, move.j, SudokuBoard.empty)
+                    if float(eval) > max_eval:
+                        max_eval = eval
+                        best_move = move
                     alpha = max(alpha, max_eval)
-                    board.put(move.i, move.j, 0)
                     if beta <= alpha: break
-                return max_eval
+                return best_move, max_eval
 
             else:
                 min_eval = float('inf')
                 for move in all_moves:
-                    score = evaluate_move(board, move, False)
-                    eval = score + minimax(board, depth - 1, alpha, beta, True)
-                    min_eval = min(min_eval, eval)
+                    score = evaluate_move(board, move)
+                    current_score -= score
+                    board.put(move.i, move.j, move.value)
+                    eval = minimax(board, depth - 1, current_score, alpha, beta, True)[1]
+                    current_score += score
+                    board.put(move.i, move.j, SudokuBoard.empty)
+                    if float(eval) < min_eval:
+                        min_eval = eval
+                        best_move = move
                     beta = min(beta, min_eval)
-                    board.put(move.i, move.j, 0)
                     if beta <= alpha: break
-                return min_eval
+                return best_move, min_eval
         
         current_player = game_state.current_player()
+
         if current_player == 1: isMaximizing=False
         elif current_player == 2: isMaximizing=True
+        
         # Run MiniMax and propose best move
-        all_legal_moves = get_legal_moves(game_board)
-        max_eval = -float('inf')
+        all_legal_moves = get_legal_moves(board)
         self.propose_move(random.choice(all_legal_moves))
-        for depth in range(1,5):
-            print("depth: ", depth)
-            alpha = beta = -float('inf')
-            for move in all_legal_moves:
-                score = evaluate_move(game_board, move, True)
-                eval = score + minimax(game_board, depth, alpha, beta, isMaximizing)
-                if eval > max_eval:
-                    max_eval = eval
-                    best_move = move
-                    self.propose_move(best_move)
-                    print("proposed move ", best_move.i, best_move.j, best_move.value, eval)
-                game_board.put(move.i, move.j, 0)
+
+        for depth in range(1,N*N):
+            best_move, _ = minimax(board, depth, 0, float('-inf'), float('inf'), isMaximizing)
+            self.propose_move(best_move)
