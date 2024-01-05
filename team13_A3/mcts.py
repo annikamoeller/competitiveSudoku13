@@ -6,7 +6,7 @@ import random
 import copy 
 
 class MonteCarloTreeSearchNode():
-    def __init__(self, state: GameState, parent=None, parent_action=None):
+    def __init__(self, state: GameState, is_player_1, parent=None, parent_action=None):
         self.state = state
         self.parent = parent
         self.parent_action = parent_action
@@ -15,14 +15,19 @@ class MonteCarloTreeSearchNode():
         self._results = []
         for _ in range(3):
             self._results.append(0)
-        self.n_legal_moves = len(get_legal_heuristic_moves(self.state))
-        self.untried_actions = get_legal_heuristic_moves(self.state)
+        self.n_legal_moves = len(get_legal_moves(self.state))
+        self.untried_actions = get_legal_moves(self.state)
         self.uct = float('inf')
+        self.is_player_1 = is_player_1
         return
     
     def q(self):
-        wins = self._results[1]
-        losses = self._results[2]
+        if self.is_player_1:
+            wins = self._results[1]
+            losses = self._results[2]
+        else: 
+            wins = self._results[2]
+            losses = self._results[1]
         return wins - losses
     
     def n(self):
@@ -39,6 +44,7 @@ class MonteCarloTreeSearchNode():
             game_over = is_game_over(current_rollout_state)
             if game_over:
                 print("successful sim, winner is ", get_game_winner(current_rollout_state))
+                print("scores ", current_rollout_state.scores)
                 return True, get_game_winner(current_rollout_state)
             possible_moves = get_legal_moves(current_rollout_state)
             if not possible_moves and not game_over:
@@ -50,7 +56,7 @@ class MonteCarloTreeSearchNode():
 
     def backpropagate(self, result):
         #print("backpropagating")
-        self._number_of_visits += 1.
+        self.increment_n_visits()
         self._results[result] += 1.
         if self.parent:
             self.parent.backpropagate(result)
@@ -58,19 +64,22 @@ class MonteCarloTreeSearchNode():
     def is_fully_expanded(self):
         return len(self.untried_actions) == 0
     
+    def increment_n_visits(self):
+        self._number_of_visits += 1
+
     def expand(self):
         print("Expand")
-        action = self.untried_actions.pop()
         print("untried actions: ", len(self.untried_actions))
+        random.shuffle(self.untried_actions)
+        action = self.untried_actions.pop()
         next_state = simulate_move(self.state, action)
         child_node = MonteCarloTreeSearchNode(
-            next_state, parent=self, parent_action=action)
-        child_node._number_of_visits += 1
+            next_state, self.is_player_1, parent=self, parent_action=action)
 
         self.children.append(child_node)
         return child_node
     
-    def calculate_uct(self, c_param=2):
+    def calculate_uct(self, c_param):
         if self.n() == 0:
             uct = float('inf')
         else:
@@ -83,29 +92,31 @@ class MonteCarloTreeSearchNode():
     
     def highest_uct_child(self):
         #print("calculating highest uct child")
-        if(len(self.children) == 0):
-            print("\n CHILDREN == 0", self.state)
         print("children ", len(self.children))
-        child_uct_list = [child.calculate_uct(c_param=0.1) for child in self.children]
-        #child_action_list = [(child.parent_action.i, child.parent_action.j, child.parent_action.value) for child in self.children]
-        return self.children[np.argmax(child_uct_list)]
+        child_uct_list = [child.calculate_uct(c_param=100) for child in self.children]
+        child_uct_action_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.calculate_uct(c_param=0.1)) for child in self.children]
+        child_uct_list = np.array(child_uct_list)
+        print(child_uct_action_list)
+        return self.children[np.random.choice(np.flatnonzero(child_uct_list == child_uct_list.max()))]
+
+        #return self.children[np.argmax(child_uct_list)]
     
     def best_child(self):
+        child_visit_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.n()) for child in self.children]
+        print(child_visit_list)
         return self.children[np.argmax(child.n() for child in self.children)]
     
     def _tree_policy(self):
         layers_down = 0
         current_node = self
-        # print(len(current_node.untried_actions), " unvisited children")
-
         while not current_node.is_terminal_node():
             if not current_node.is_fully_expanded():
+                #print(len(current_node.untried_actions), " unvisited children")
                 return current_node.expand()
             else:
                 layers_down +=1 
                 #print("is game over ", is_game_over(current_node.state))
-
                 current_node = current_node.highest_uct_child()
-                # print(len(current_node.untried_actions), " unvisited children")
                 print(layers_down, " layers down")
+        #print(len(current_node.untried_actions), " unvisited children")
         return current_node

@@ -23,8 +23,6 @@ def get_legal_heuristic_moves(game_state):
     elif taboo_move_hidden_pairs is not None:
         new_taboo_move = taboo_move_hidden_pairs
     random.shuffle(filtered_moves)
-    print("filtered moves len ", len(filtered_moves))
-
     return filtered_moves
 
 def possible(game_state, i, j, value):
