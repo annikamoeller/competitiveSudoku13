@@ -2,6 +2,30 @@ import random
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
 import copy
+from team13_A3.heuristics import *
+
+def get_legal_heuristic_moves(game_state):
+    new_taboo_move = None
+    all_legal_moves = get_legal_moves(game_state)
+    moves_obvious_singles, taboo_move_obvious_singles = obvious_singles(game_state.board, all_legal_moves)
+    moves_hidden_pairs, taboo_move_hidden_pairs = hidden_pairs(game_state.board, moves_obvious_singles) 
+
+    if not moves_hidden_pairs:
+        if not moves_obvious_singles: 
+            filtered_moves = all_legal_moves  # No moves found from obvious singles or hidden pairs.
+        else: 
+            filtered_moves = moves_obvious_singles  # Moves found from obvious singles but not hidden pairs.
+    else: 
+        filtered_moves = moves_hidden_pairs  # Moves found from hidden pairs.
+    
+    if taboo_move_obvious_singles is not None:  
+        new_taboo_move = taboo_move_obvious_singles
+    elif taboo_move_hidden_pairs is not None:
+        new_taboo_move = taboo_move_hidden_pairs
+    random.shuffle(filtered_moves)
+    print("filtered moves len ", len(filtered_moves))
+
+    return filtered_moves
 
 def possible(game_state, i, j, value):
     """ 

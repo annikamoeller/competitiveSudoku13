@@ -19,30 +19,20 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
             
     
     def compute_best_move(self, game_state: GameState) -> None:
-        N = game_state.board.N
         # Propose a random move at the start
         all_legal_moves = get_legal_moves(game_state)
         random_move = random.choice(all_legal_moves)
         self.propose_move(random_move)
         root_node = MonteCarloTreeSearchNode(state = game_state)
-        current_node = root_node
-        i = 0
+        
         while True:
-            # print("iteration ", i)
-            i += 1
             print("\n \n NEW ITERATION ")
-            selected_node, use_new_node, terminal_node_reached = current_node._tree_policy()
-            if use_new_node: 
-                print("GOING DOWN TREE ")
-                print("using new node ", selected_node.parent_action)
-                current_node = selected_node
-                continue
-            if terminal_node_reached:
-                print("terminal node reached")
-                break
+            selected_node = root_node._tree_policy()
             print("selected node ",selected_node.parent_action, "\n", selected_node.state)
+            if selected_node.parent.parent_action:
+                previous_action = selected_node.parent.parent_action
+                print("previous action ", previous_action.i, previous_action.j, previous_action.value)
             completed_simulation, winner = selected_node.rollout()
-            #print("completed sim, winner", completed_simulation, winner)
             if completed_simulation:
                 selected_node.backpropagate(winner)
                 best_move = root_node.best_child().parent_action
