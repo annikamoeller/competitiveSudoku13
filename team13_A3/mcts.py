@@ -12,27 +12,22 @@ class MonteCarloTreeSearchNode():
         self.parent_action = parent_action
         self.children = []
         self._number_of_visits = 0
-        self._q_score = 0
-        self._results = []
-        for _ in range(3):
-            self._results.append(0)
         self.legal_moves, self.taboo_move = get_legal_heuristic_moves(self.state)
-        print("taboo move ", self.taboo_move)
+        self.q_score = 0
         self.n_legal_moves = len(self.legal_moves)
         self.untried_actions = self.legal_moves
         self.uct = float('inf')
         self.is_player_1 = is_player_1
         return
     
+    def refresh_state(self, new_game_state):
+        #self.state.scores = new_game_state.scores
+        #self.state.taboo_moves = new_game_state.taboo_moves
+        self.legal_moves, self.taboo_move = get_legal_heuristic_moves(self.state)
+        self.n_legal_moves = len(self.legal_moves)
+
     def q(self):
-        #return self._q_score
-        if self.is_player_1:
-            wins = self._results[1]
-            losses = self._results[2]
-        else: 
-            wins = self._results[2]
-            losses = self._results[1]
-        return wins - losses
+        return self.q_score
     
     def n(self):
         return self._number_of_visits
@@ -40,31 +35,27 @@ class MonteCarloTreeSearchNode():
     def is_terminal_node(self):
         return is_game_over(self.state) or self.n_legal_moves == 0
     
-    def rollout(self):
+    def simulate_random_playout(self):
         print("rollout")
         print("n times visited ", self.n())
         current_rollout_state = copy.deepcopy(self.state)
         while True:
             game_over = is_game_over(current_rollout_state)
             if game_over:
-                print("successful sim, winning player is ", get_winning_player(current_rollout_state, self.is_player_1))
-                #print("net score ", get_net_score(current_rollout_state, self.is_player_1))
-                return True, get_winning_player(current_rollout_state, self.is_player_1)
+                print("successful sim, net score is ", get_game_result(current_rollout_state, self.is_player_1))
+                return True, get_game_result(current_rollout_state, self.is_player_1)
             possible_moves, _ = get_legal_heuristic_moves(current_rollout_state)
             if not possible_moves and not game_over:
                 print("unsuccessful sim")
                 return False, 0
             move = random.choice(possible_moves)
-            #print("chosen random move ", move.i, move.j, move.value)
             current_rollout_state = simulate_move(current_rollout_state, move)
-            #print("current score ", current_rollout_state.scores)
-            #print("current rollout state \n", current_rollout_state)
 
     def backpropagate(self, result):
-        #print("backpropagating")
+        print("backpropagating")
         self.increment_n_visits()
-        #self._q_score += result
-        self._results[result] += 1.
+        self.q_score += result
+        print("q-score ", self.q_score)
         if self.parent:
             self.parent.backpropagate(result)
 
@@ -89,47 +80,46 @@ class MonteCarloTreeSearchNode():
         if self.n() == 0:
             uct = float('inf')
         else:
-            average_leaf_score = self.q() / self.n()
-            frequent_visit_penalty = c_param \
-                                        * np.sqrt(np.log(self.parent.n()) / self.n())
-
-            uct = average_leaf_score + frequent_visit_penalty
+            if self.parent.n() == 0:
+                uct = float('inf')
+            else:
+                average_leaf_score = self.q() / self.n()
+                frequent_visit_penalty = c_param * np.sqrt(np.log(self.parent.n()) / self.n())
+                uct = average_leaf_score + frequent_visit_penalty
         return uct
     
-    def highest_uct_child(self):
-        #print("calculating highest uct child")
-        print("children ", len(self.children))
-        child_uct_list = [child.calculate_uct(c_param=2) for child in self.children]
-        child_uct_action_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.calculate_uct(c_param=2)) for child in self.children]
-        print(child_uct_action_list)
-        random.shuffle(child_uct_list)
-        #return self.children[np.random.choice(np.flatnonzero(child_uct_list == child_uct_list.max()))]
-
-        return self.children[np.argmax(child_uct_list)]
+    def highest_uct_child(self, c_param):
+        child_uct_list = np.array([child.calculate_uct(c_param) for child in self.children])
+        return self.children[random.choice(np.where(child_uct_list == child_uct_list.max())[0])]
     
     def best_child(self):
-        child_visit_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.n()) for child in self.children]
-        #print(child_visit_list)
-        child_uct_action_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.calculate_uct(c_param=2)) for child in self.children]
-        #print(child_uct_action_list)
-
-        child_n_list = [(child.n() for child in self.children)]
-        random.shuffle(child_n_list)
-        return self.children[np.argmax(child_n_list)]
+        child_n_div_q = np.array([child.n()/child.q() if child.q() != 0 else 0 for child in self.children])
+        child_n_list = np.array([child.n() for child in self.children])
+        return self.children[random.choice(np.where(child_n_div_q == child_n_div_q.max())[0])]
     
+    def print_uct_and_action_vals(self, c_param):
+        child_uct_action_list = [([child.parent_action.i, child.parent_action.j, child.parent_action.value], child.calculate_uct(c_param), child.n()) for child in self.children]
+        print(child_uct_action_list)
+
     def _tree_policy(self):
         layers_down = 0
         current_node = self
+        
+        self.print_uct_and_action_vals(2)
         while not current_node.is_terminal_node():
-            print("going down tree ", current_node.parent_action)
             if not current_node.is_fully_expanded():
-                #print(len(current_node.untried_actions), " unvisited children")
+                print(len(current_node.untried_actions), " unvisited children")
                 return current_node.expand()
             else:
                 layers_down +=1 
-                #print("is game over ", is_game_over(current_node.state))
-                current_node = current_node.highest_uct_child()
-                print("chosen highest_uct_node ", current_node.parent_action, current_node.calculate_uct(2))
+                current_node = current_node.highest_uct_child(c_param=2)
                 print(layers_down, " layers down")
-        #print(len(current_node.untried_actions), " unvisited children")
+        print(len(current_node.untried_actions), " unvisited children")
         return current_node
+    
+    def print_parent_actions(self):
+        copy_node = self
+        while copy_node.parent:
+            previous_action = copy_node.parent_action
+            print("previous action ", previous_action.i, previous_action.j, previous_action.value)
+            copy_node = copy_node.parent

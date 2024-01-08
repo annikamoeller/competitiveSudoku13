@@ -84,10 +84,8 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
         self.propose_move(random_move)
     
         for depth in range(1,N*N):
-            print(depth)
             iter_depth = depth
             best_move, eval, taboo_move = minimax(game_state, depth, iter_depth, 0, float('-inf'), float('inf'), isMaximizing = True)
-            print("eval ", eval)
             even = even_squares_empty(game_state.board)
             if (eval < 0 or even) and board_half_filled(game_state.board):
                 if taboo_move:

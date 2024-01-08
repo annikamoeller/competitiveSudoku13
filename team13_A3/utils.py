@@ -7,8 +7,8 @@ from team13_A3.heuristics import *
 def get_legal_heuristic_moves(game_state):
     new_taboo_move = None
     all_legal_moves = get_legal_moves(game_state)
-    moves_obvious_singles, taboo_move_obvious_singles = obvious_singles(game_state.board, all_legal_moves)
-    moves_hidden_pairs, taboo_move_hidden_pairs = hidden_pairs(game_state.board, moves_obvious_singles) 
+    moves_obvious_singles, taboo_move_obvious_singles = obvious_singles(game_state, all_legal_moves)
+    moves_hidden_pairs, taboo_move_hidden_pairs = hidden_pairs(game_state, moves_obvious_singles) 
 
     if not moves_hidden_pairs:
         if not moves_obvious_singles: 
@@ -26,19 +26,12 @@ def get_legal_heuristic_moves(game_state):
     random.shuffle(filtered_moves)
     return filtered_moves, new_taboo_move
 
-def possible(game_state, i, j, value):
-    """ 
-    Check if a move is possible.
-    """
-    return game_state.board.get(i, j) == SudokuBoard.empty and not TabooMove(i, j, value) in game_state.taboo_moves
-
 def get_legal_moves(game_state):
     """ 
     Get all legal moves in a state.
     """
     all_moves = [Move(i, j, value) for i in range(game_state.board.N) for j in range(game_state.board.N)
                 for value in range(1, game_state.board.N +1) if possible(game_state, i, j, value)]
-
     all_legal_moves = []
     for move in all_moves:
         current_row, current_col, current_block = get_row_col_block_values(game_state.board, move)
@@ -47,6 +40,12 @@ def get_legal_moves(game_state):
             all_legal_moves.append(move)
 
     return all_legal_moves
+
+def possible(game_state, i, j, value):
+    """ 
+    Check if a move is possible.
+    """
+    return game_state.board.get(i, j) == SudokuBoard.empty and not TabooMove(i, j, value) in game_state.taboo_moves
 
 def get_row_col_block_values(board, move):
     """
@@ -77,35 +76,33 @@ def evaluate_move(board, move):
     """
     Assign a score to a given move. 
     """
+    N = board.N
     current_row, current_col, current_block = get_row_col_block_values(board, move)
-    #print(current_row)
-    #print(current_col)
-    #print(current_block)
     # Check if a move results in a full row/column/block and assign score accordingly
-    solves_row = (len(current_row) == board.N)    
-    solves_col = (len(current_col) == board.N)     
-    solves_block = (len(current_block) == board.N) 
+    solves_row = (len(current_row) == N)    
+    solves_col = (len(current_col) == N)     
+    solves_block = (len(current_block) == N) 
     truth_arr = [solves_row, solves_col, solves_block] 
     if sum(truth_arr) == 0: score = 0
     if sum(truth_arr) == 1: score = 1
     if sum(truth_arr) == 2: score = 3
     if sum(truth_arr) == 3: score = 7
-    #print("score is ", score)
     return score
 
-def get_winning_player(game_state, _):
-    scores = game_state.scores
-    if scores[0] > scores[1]: return 1 # player 1 wins
-    elif scores[0] < scores[1]: return 2 # player 2 wins
-    else: return 0
-
-def get_net_score(game_state, is_player_1):
+def get_game_result(game_state, is_player_1):
     scores = game_state.scores
     if is_player_1: 
         net_score = scores[0] - scores[1]
     else:
         net_score = scores[1] - scores[0]
-    return net_score
+
+    if net_score > 0:
+        scaled_score = 1 + net_score*0.01
+    elif net_score < 0:
+        scaled_score = -1 - net_score*0.01
+    else:
+        scaled_score = 0
+    return scaled_score
 
 def is_game_over(game_state):
     n_full = 0
@@ -116,6 +113,26 @@ def is_game_over(game_state):
             if board.get(i, j) is not SudokuBoard.empty:
                 n_full += 1
     return n_full == total_cells
+
+def should_play_taboo(game_state):
+    if even_squares_empty(game_state.board) and board_half_filled(game_state.board):
+        # We can't score, we are not playing from a position we want to be in, so use this
+        #   chance to swap turns
+        return True
+    else:
+        return False
+    
+def even_squares_empty(board):
+    """
+    Helper function that returns whether 
+    there are an even number of squares empty. 
+    """
+    n_empties = 0
+    for i in range(board.N):
+        for j in range(board.N):
+            if board.get(i, j) is SudokuBoard.empty:
+                n_empties += 1  
+    return n_empties % 2 == 0
 
 def board_half_filled(board):
     """
@@ -129,37 +146,5 @@ def board_half_filled(board):
             if board.get(i, j) is not SudokuBoard.empty:
                 n_full += 1
     return n_full/total_cells > 0.5
+    
 
-def even_squares_empty(board):
-    """
-    Helper function that returns whether 
-    there are an even number of squares empty. 
-    """
-    n_empties = 0
-    for i in range(board.N):
-        for j in range(board.N):
-            if board.get(i, j) is SudokuBoard.empty:
-                n_empties += 1  
-    return n_empties % 2 == 0
-
-def should_play_taboo(game_state, moves):
-    """
-    Helper function for extend_node to determine whether we want to play a taboo move at this moment.
-    @return: A boolean describing whether we want to play a taboo move in this state or not.
-    """
-    can_score = False
-    for move in moves: 
-        points = evaluate_move(game_state.board, move)
-        if points > 0: 
-            can_score = True
-            break
-    if can_score:
-        # If we can score, we definitely don't want to play a taboo move and let the opponent score
-        return False
-    elif even_squares_empty(game_state.board) and board_half_filled(game_state.board):
-        # We can't score, we are not playing from a position we want to be in, so use this
-        #   chance to swap turns
-        return True
-    else:
-        # Can't score right now, but our position is acceptable. Just play normally.
-        return False

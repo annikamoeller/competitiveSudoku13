@@ -3,10 +3,11 @@ from team13_A2.utils import *
 import random 
 from itertools import chain
 
-def hidden_pairs(board: SudokuBoard, moves: list):
+def hidden_pairs(game_state, moves: list):
     """
     Returns a filtered list of moves using the hidden twin exclusion.
     """
+    board = game_state.board
     filtered_moves = []
     taboo_moves = []
     store_taboo_move = None
@@ -31,7 +32,10 @@ def hidden_pairs(board: SudokuBoard, moves: list):
     taboo_moves = list(chain.from_iterable(taboo_moves))
     if taboo_moves:
         filtered_moves = [move for move in moves if move not in taboo_moves]
-        store_taboo_move = taboo_moves[0]
+        for move in taboo_moves:
+            if move not in game_state.taboo_moves: 
+                store_taboo_move = move
+                break
         return filtered_moves, store_taboo_move
 
     return moves, store_taboo_move
@@ -87,11 +91,12 @@ def pair_appears_in_row_or_block(board, moves_dict, intersection, k, k_):
     return False
     
 
-def obvious_singles(board, moves):
+def obvious_singles(game_state, moves):
     """ 
     Obvious singles heuristic that identifies moves as taboo when a square 
     in the same row, block, or column has only one possible value. 
     """
+    board = game_state.board
     taboo_moves = []
     store_taboo_move = None
     moves_dict = {}
@@ -112,7 +117,10 @@ def obvious_singles(board, moves):
                         taboo_moves.append(move)
     if taboo_moves:
         filtered_moves = [move for move in moves if move not in taboo_moves]
-        store_taboo_move = taboo_moves[0]
+        for move in taboo_moves:
+            if move not in game_state.taboo_moves: 
+                store_taboo_move = move
+                break
         return filtered_moves, store_taboo_move
     
     return moves, store_taboo_move
