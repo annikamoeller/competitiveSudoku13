@@ -89,7 +89,7 @@ def evaluate_move(board, move):
     if sum(truth_arr) == 3: score = 7
     return score
 
-def get_game_result(game_state, is_player_1):
+def get_game_result(game_state, is_player_1, scale_by_score):
     scores = game_state.scores
     if is_player_1: 
         net_score = scores[0] - scores[1]
@@ -97,12 +97,16 @@ def get_game_result(game_state, is_player_1):
         net_score = scores[1] - scores[0]
 
     if net_score > 0:
-        scaled_score = 1 + net_score*0.01
+        if scale_by_score:
+            score = 1 + net_score*0.01
+        else: score = 1
     elif net_score < 0:
-        scaled_score = -1 - net_score*0.01
+        if scale_by_score:
+            score = -1 - net_score*0.01
+        else: score = -1
     else:
-        scaled_score = 0
-    return scaled_score
+        score = 0
+    return score
 
 def is_game_over(game_state):
     n_full = 0

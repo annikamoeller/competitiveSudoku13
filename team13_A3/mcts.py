@@ -42,8 +42,8 @@ class MonteCarloTreeSearchNode():
         while True:
             game_over = is_game_over(current_rollout_state)
             if game_over:
-                print("successful sim, net score is ", get_game_result(current_rollout_state, self.is_player_1))
-                return True, get_game_result(current_rollout_state, self.is_player_1)
+                #print("successful sim, net score is ", get_game_result(current_rollout_state, self.is_player_1, scale_by_score=False))
+                return True, get_game_result(current_rollout_state, self.is_player_1, scale_by_score=False)
             possible_moves, _ = get_legal_heuristic_moves(current_rollout_state)
             if not possible_moves and not game_over:
                 print("unsuccessful sim")
