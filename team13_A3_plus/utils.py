@@ -4,10 +4,7 @@ import competitive_sudoku.sudokuai
 import copy
 from team13_A3.heuristics import *
 
-def get_heuristic_moves(game_state):
-    """
-    Apply heuristics to all legal moves.
-    """
+def get_legal_heuristic_moves(game_state):
     new_taboo_move = None
     all_legal_moves = get_legal_moves(game_state)
     moves_obvious_singles, taboo_move_obvious_singles = obvious_singles(game_state, all_legal_moves)
@@ -63,10 +60,7 @@ def get_row_col_block_values(board, move):
                         for j in range(block_j, block_j + board.n) if board.get(i,j) != SudokuBoard.empty]
     return current_row, current_col, current_block
 
-def simulate_move(game_state, move):
-    """ 
-    Simulate a move being placed on a board. 
-    """    
+def simulate_move(game_state, move):    
     simulated_player = len(game_state.moves) %2 
     game_state_copy = copy.deepcopy(game_state)
     game_state_copy.board.put(move.i, move.j, move.value)
@@ -96,10 +90,6 @@ def evaluate_move(board, move):
     return score
 
 def get_game_result(game_state, is_player_1, scale_by_score):
-    """
-    Evaluate the result of a game. Returns either the winning player
-    or score including scaled net game result (by factor 0.01).
-    """
     scores = game_state.scores
     if is_player_1: 
         net_score = scores[0] - scores[1]
@@ -119,9 +109,6 @@ def get_game_result(game_state, is_player_1, scale_by_score):
     return score
 
 def is_game_over(game_state):
-    """
-    Check if a board is filled.
-    """
     n_full = 0
     board = game_state.board
     total_cells = board.N * board.N
@@ -132,11 +119,17 @@ def is_game_over(game_state):
     return n_full == total_cells
 
 def should_play_taboo(game_state):
-    return even_squares_empty(game_state.board) and board_half_filled(game_state.board)
+    if even_squares_empty(game_state.board) and board_half_filled(game_state.board):
+        # We can't score, we are not playing from a position we want to be in, so use this
+        #   chance to swap turns
+        return True
+    else:
+        return False
     
 def even_squares_empty(board):
     """
-    Check whether even number of squares on a board are empty.
+    Helper function that returns whether 
+    there are an even number of squares empty. 
     """
     n_empties = 0
     for i in range(board.N):
@@ -147,7 +140,8 @@ def even_squares_empty(board):
 
 def board_half_filled(board):
     """
-    Check whether the board is half filled. 
+    Helper function that returns 
+    whether the board is half-filled.
     """
     n_full = 0
     total_cells = board.N * board.N
