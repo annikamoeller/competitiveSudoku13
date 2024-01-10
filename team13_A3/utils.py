@@ -132,6 +132,9 @@ def is_game_over(game_state):
     return n_full == total_cells
 
 def should_play_taboo(game_state):
+    """
+    Calculate whether we should play a taboo move or not.
+    """
     return even_squares_empty(game_state.board) and board_half_filled(game_state.board)
     
 def even_squares_empty(board):

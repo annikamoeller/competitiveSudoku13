@@ -34,7 +34,7 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
                 self.propose_move(root_node.taboo_move)
                 return
         else:
-            # Run Monte Carlo tree search
+            # Run Monte Carlo tree search algorithm
             while True: 
                 selected_node = root_node.select_node()
                 completed_simulation, score = selected_node.simulate_random_playout()
