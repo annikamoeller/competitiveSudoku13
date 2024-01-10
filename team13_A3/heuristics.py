@@ -1,6 +1,4 @@
 from competitive_sudoku.sudoku import SudokuBoard
-from team13_A2.utils import * 
-import random 
 from itertools import chain
 
 def hidden_pairs(game_state, moves: list):
@@ -124,3 +122,14 @@ def obvious_singles(game_state, moves):
         return filtered_moves, store_taboo_move
     
     return moves, store_taboo_move
+
+def calculate_region_index(board: SudokuBoard, m, n):
+    """ 
+    Helper function to calculate the block 
+    that a square with coordinates (m,n) is in.
+    """
+    row_region_index = (m // board.m) * board.m
+    column_region_index = (n // board.n) * board.n
+
+    return row_region_index, column_region_index
+

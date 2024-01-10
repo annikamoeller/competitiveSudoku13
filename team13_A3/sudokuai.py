@@ -5,8 +5,8 @@
 import random
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
 import competitive_sudoku.sudokuai
-from team13_A2.heuristics import *
-from team13_A2.utils import * 
+from team13_A3.heuristics import *
+from team13_A3.utils import * 
 from team13_A3.mcts import *
 
 class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):

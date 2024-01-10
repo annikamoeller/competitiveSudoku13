@@ -1,8 +1,7 @@
 import random
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
-import competitive_sudoku.sudokuai
 import copy
-from team13_A3.heuristics import *
+from team13_A3.heuristics import obvious_singles, hidden_pairs
 
 def get_heuristic_moves(game_state):
     """
@@ -159,5 +158,3 @@ def board_half_filled(board):
             if board.get(i, j) is not SudokuBoard.empty:
                 n_full += 1
     return n_full/total_cells > 0.5
-    
-

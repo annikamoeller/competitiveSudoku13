@@ -1,7 +1,6 @@
 import numpy as np
 from team13_A3.utils import *
 from competitive_sudoku.sudoku import GameState, Move, SudokuBoard, TabooMove
-import competitive_sudoku.sudokuai
 import random 
 import copy 
 
